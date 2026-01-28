@@ -24,6 +24,13 @@ class TemplateService:
         "it": {"name": "IT/과학", "emoji": "🤖"},
     }
 
+    # 기사 선별 신호 키워드 (구조/방향성 판단)
+    SIGNAL_KEYWORDS = [
+        "전망", "가능성", "논의", "확대", "전환",
+        "우려", "변화", "가속", "장기", "영향",
+        "추진", "검토", "계획", "본격", "착수",
+    ]
+
     # 애매한 문장들 (의도적 여지)
     UNCERTAIN_PHRASES = [
         "아직 명확한 결론을 내리긴 어렵다.",
@@ -40,6 +47,113 @@ class TemplateService:
         "잠깐, 이건 좀 다른 얘기다.",
         "근데 생각해보면,",
     ]
+
+    # Short Day 문구 (뉴스 한산한 날)
+    SHORT_DAY_PHRASES = [
+        "오늘은 상대적으로 조용한 하루였다.",
+        "큰 이슈 없이 지나간 날은, 되려 준비하는 날이다.",
+        "오늘 같은 날은 어제와 내일 사이를 연결하는 시간이다.",
+    ]
+
+    def score_article(self, article: Dict[str, Any]) -> int:
+        """기사 점수 산정 - 좋은 기사 선별 로직.
+
+        점수 기준:
+        - 제목 길이 (20-60자) → +2
+        - 신호 키워드 포함 → +1 per keyword
+        - 요약 존재 및 충분한 길이 → +2
+        - 자극적 표현 → -2
+        """
+        score = 0
+        title = article.get("title", "")
+        summary = article.get("summary", "")
+
+        # 1. 제목 길이 (너무 짧으면 정보 부족, 너무 길면 낚시성)
+        if 20 <= len(title) <= 60:
+            score += 2
+        elif len(title) > 60:
+            score -= 1  # 너무 긴 제목 감점
+
+        # 2. 키워드 신호 (구조/방향성 있는 기사)
+        score += sum(1 for k in self.SIGNAL_KEYWORDS if k in title)
+
+        # 3. 요약 존재 및 품질
+        if summary and len(summary) > 50:
+            score += 2
+        elif summary and len(summary) > 20:
+            score += 1
+
+        # 4. 자극적 표현 감점
+        if "!" in title:
+            score -= 2
+        if "단독" in title:
+            score -= 1
+        if "속보" in title:
+            score -= 1
+        if "충격" in title or "경악" in title:
+            score -= 2
+
+        # 5. 숫자/데이터 포함 가점 (구체적 정보)
+        if any(c.isdigit() for c in title):
+            score += 1
+
+        return score
+
+    def select_main_article(self, articles: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """점수 기반 메인 기사 선택."""
+        if not articles:
+            return {}
+
+        scored = [(self.score_article(a), a) for a in articles]
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return scored[0][1]
+
+    def select_top_articles(
+        self, articles: List[Dict[str, Any]], count: int = 3
+    ) -> List[Dict[str, Any]]:
+        """점수 기반 상위 기사 선택."""
+        if not articles:
+            return []
+
+        scored = [(self.score_article(a), a) for a in articles]
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [a for _, a in scored[:count]]
+
+    def is_short_day(self, articles: List[Dict[str, Any]], threshold: int = 3) -> bool:
+        """뉴스 한산한 날 판단.
+
+        기준: 전체 기사 수가 threshold 이하이거나,
+        상위 기사 점수가 낮으면 Short Day로 판단.
+        """
+        if len(articles) <= threshold:
+            return True
+
+        # 최고 점수가 2점 이하면 한산한 날
+        if articles:
+            top_score = max(self.score_article(a) for a in articles)
+            if top_score <= 2:
+                return True
+
+        return False
+
+    def _generate_short_day_content(self, category: str) -> str:
+        """Short Day 콘텐츠 생성."""
+        lines = []
+        meta = self.CATEGORY_META.get(category, {"name": category})
+
+        lines.append(random.choice(self.SHORT_DAY_PHRASES))
+        lines.append("")
+        lines.append(f"오늘 {meta['name']} 분야에서는")
+        lines.append("눈에 띄는 변화나 이슈가 없었다.")
+        lines.append("")
+        lines.append("이럴 때 굳이 뭔가 의미를 만들어내는 건")
+        lines.append("오히려 노이즈가 된다.")
+        lines.append("")
+        lines.append("조용한 날은 조용한 대로 기록해두고,")
+        lines.append("**다음 움직임이 어디서 나올지** 지켜보는 게 낫다.")
+        lines.append("")
+
+        return "\n".join(lines)
 
     def generate_template(self, article: Dict[str, Any]) -> str:
         """단일 기사 템플릿."""
@@ -102,22 +216,29 @@ class TemplateService:
         return template
 
     def _generate_category_content(self, category: str, articles: List[Dict[str, Any]]) -> str:
-        """카테고리별 콘텐츠 - AI 티 제거 적용."""
+        """카테고리별 콘텐츠 - AI 티 제거 + 스코어링 적용."""
         if not articles:
             return "오늘은 특별한 이슈 없었습니다.\n"
 
+        # Short Day 체크
+        if self.is_short_day(articles, threshold=2):
+            return self._generate_short_day_content(category)
+
+        # 점수 기반 정렬
+        sorted_articles = self.select_top_articles(articles, count=5)
+
         if category == "economy":
-            return self._content_economy(articles)
+            return self._content_economy(sorted_articles)
         elif category == "politics":
-            return self._content_politics(articles)
+            return self._content_politics(sorted_articles)
         elif category == "it":
-            return self._content_tech(articles)
+            return self._content_tech(sorted_articles)
         elif category == "society":
-            return self._content_society(articles)
+            return self._content_society(sorted_articles)
         elif category == "world":
-            return self._content_world(articles)
+            return self._content_world(sorted_articles)
         else:
-            return self._content_general(articles)
+            return self._content_general(sorted_articles)
 
     def _content_economy(self, articles: List[Dict[str, Any]]) -> str:
         """경제 - 문단 불균형 + 애매한 문장."""
