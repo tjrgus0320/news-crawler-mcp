@@ -2,14 +2,16 @@
 import sys
 from pathlib import Path
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-sys.path.insert(0, str(Path(__file__).parent.parent / "backend"))
+# Add project paths
+root = Path(__file__).parent.parent
+sys.path.insert(0, str(root))
+sys.path.insert(0, str(root / "backend"))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mangum import Mangum
 
-# Import routers from backend
+# Import router
 from backend.app.api.news_router import router as news_router
 
 app = FastAPI(
@@ -18,7 +20,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS 설정
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -31,10 +33,10 @@ app.add_middleware(
 app.include_router(news_router)
 
 
-@app.get("/")
+@app.get("/api")
 async def root():
-    return {"message": "뉴스 크롤러 API", "docs": "/docs"}
+    return {"message": "뉴스 크롤러 API", "docs": "/api/docs"}
 
 
-# Vercel handler
-handler = app
+# Vercel serverless handler
+handler = Mangum(app, lifespan="off")
