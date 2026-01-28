@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/main/schemas/mcp.schema.json",
+  "mcpServers": {
+    "news-crawler": {
+      "command": "D:\\repository\\news-crawler-mcp\\venv\\Scripts\\python.exe",
+      "args": ["-m", "src.server"],
+      "cwd": "D:\\repository\\news-crawler-mcp"
+    }
+  }
+}

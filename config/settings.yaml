@@ -1,0 +1,67 @@
+# News Crawler MCP Server Configuration
+
+# 크롤링 설정
+crawling:
+  # 요청 간 딜레이 (초)
+  request_delay: 1.0
+  # 최대 재시도 횟수
+  max_retries: 3
+  # 요청 타임아웃 (초)
+  timeout: 30
+  # User-Agent
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+# 네이버 뉴스 카테고리 설정
+naver:
+  base_url: "https://news.naver.com"
+  categories:
+    politics:
+      name: "정치"
+      section_id: "100"
+    economy:
+      name: "경제"
+      section_id: "101"
+    society:
+      name: "사회"
+      section_id: "102"
+    life:
+      name: "생활/문화"
+      section_id: "103"
+    world:
+      name: "세계"
+      section_id: "104"
+    it:
+      name: "IT/과학"
+      section_id: "105"
+
+# 출력 설정
+output:
+  # 출력 디렉토리
+  directory: "./output"
+  # 기본 파일명 형식 (날짜는 자동 추가)
+  filename_format: "{date}-daily-news.md"
+  # 카테고리별 최대 기사 수
+  max_articles_per_category: 10
+
+# 블로그 포맷 설정
+blog_format:
+  # 제목 템플릿
+  title_template: "[{date}] 오늘의 {category} 뉴스 모음"
+  # 서두 템플릿
+  intro_template: |
+    오늘의 주요 뉴스를 카테고리별로 정리했습니다.
+
+    ---
+  # 맺음말 템플릿
+  outro_template: |
+
+    ---
+
+    *이 포스트는 자동으로 생성되었습니다.*
+  # 기사 요약 포맷
+  article_format: |
+    ### {index}. {title}
+
+    {summary}
+
+    > 출처: [{source}]({url})
