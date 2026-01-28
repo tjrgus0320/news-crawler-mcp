@@ -74,12 +74,10 @@ class TemplateService:
                 by_category[cat] = []
             by_category[cat].append(article)
 
-        template = f"""# {date_str} ({weekday}) 뉴스 정리
+        template = f"""# 📰 오늘의 뉴스, 오늘의 흐름 ({date_str} {weekday})
 
-오늘 주요 뉴스 정리해봤습니다.
-
-단순히 "이런 일 있었다"가 아니라,
-**왜 중요한지**, **앞으로 어떤 의미가 있는지** 위주로 봤습니다.
+오늘 하루 쏟아진 뉴스 중,
+흐름이 느껴지는 이슈만 정리했습니다.
 
 ---
 
@@ -315,11 +313,11 @@ class TemplateService:
         return "\n".join(lines)
 
     def _generate_closing(self, by_category: Dict) -> str:
-        """클로징 - 패턴 2 (다음 관찰 포인트) + 개인 시선."""
+        """클로징 - 시리즈 시그니처."""
         lines = []
         lines.append("## 📌 오늘의 흐름\n")
 
-        # 패턴 1: 흐름 요약
+        # 흐름 요약
         lines.append("오늘 뉴스들 종합해보면,")
         lines.append("큰 변화보다는 **조용한 이동**이 더 눈에 띈 하루였다.")
         lines.append("")
@@ -328,7 +326,7 @@ class TemplateService:
         lines.append("이런 신호들이 쌓일 때 방향은 어느 순간 분명해진다.")
         lines.append("")
 
-        # 패턴 2: 다음 관찰 포인트
+        # 다음 관찰 포인트
         lines.append("당분간은 이 포인트들을 지켜보려 한다.")
         lines.append("")
 
@@ -341,12 +339,16 @@ class TemplateService:
 
         lines.append("")
 
-        # 패턴 3: 개인 시선 한 줄
+        # 개인 시선
         lines.append("개인적으로는,")
         lines.append("오늘 뉴스 중 몇 개는 생각보다 더 길게 영향 줄 것 같다.")
         lines.append("")
 
-        lines.append("내일도 주요 흐름 정리해서 올리겠습니다.")
+        # 시리즈 시그니처
+        lines.append("---\n")
+        lines.append("오늘의 뉴스는 여기까지입니다.")
+        lines.append("내일은 또 어떤 흐름이 이어질지,")
+        lines.append("기록해두겠습니다.")
         lines.append("")
 
         return "\n".join(lines)
@@ -384,18 +386,18 @@ class TemplateService:
         weekday = ["월", "화", "수", "목", "금", "토", "일"][date.weekday()]
         meta = self.CATEGORY_META.get(category, {"emoji": "📰", "name": category})
 
-        template = f"""# {meta['emoji']} {date_str} ({weekday}) {meta['name']} 정리
+        template = f"""# {meta['emoji']} 오늘의 {meta['name']}, 오늘의 흐름 ({date_str} {weekday})
 
-오늘 {meta['name']} 뉴스 정리합니다.
+오늘 하루 {meta['name']} 분야에서
+흐름이 느껴지는 이슈만 정리했습니다.
 
 ---
 
 """
         template += self._generate_category_content(category, articles)
 
-        # 카테고리별 클로징
+        # 시리즈 시그니처
         template += "\n---\n\n"
-        template += "## 정리하며\n\n"
 
         template += "오늘 다룬 내용,\n"
         template += "당장 와닿지 않을 수도 있다.\n\n"
@@ -403,7 +405,10 @@ class TemplateService:
         template += "근데 이런 게 쌓이면서 흐름이 만들어지고,\n"
         template += "어느 순간 직접 영향 받는 시점이 온다.\n\n"
 
-        template += "그래서 꾸준히 보는 거다.\n\n"
+        template += "---\n\n"
+        template += "오늘의 뉴스는 여기까지입니다.\n"
+        template += "내일은 또 어떤 흐름이 이어질지,\n"
+        template += "기록해두겠습니다.\n\n"
 
         # 참고 기사
         template += "---\n\n"
