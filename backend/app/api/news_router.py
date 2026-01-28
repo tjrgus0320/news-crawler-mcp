@@ -20,6 +20,33 @@ news_service = NewsService()
 template_service = TemplateService()
 
 
+@router.get("/digest", response_model=BlogTemplateResponse)
+async def get_daily_digest(
+    category: Optional[str] = Query(None, description="특정 카테고리만 (없으면 전체)"),
+):
+    """카테고리별 뉴스를 취합한 블로그 템플릿 생성."""
+    # Validate category if provided
+    if category:
+        try:
+            CategoryEnum(category)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid category: {category}. Valid options: {[c.value for c in CategoryEnum]}",
+            )
+
+    # Fetch articles (up to 100 for digest)
+    articles, _ = await news_service.get_articles(category, page=1, size=100)
+
+    if not articles:
+        raise HTTPException(status_code=404, detail="No articles found")
+
+    # Generate digest template
+    template = template_service.generate_daily_digest_template(articles)
+
+    return BlogTemplateResponse(article_id="digest", template=template)
+
+
 @router.get("/news", response_model=ArticleListResponse)
 async def get_news(
     category: Optional[str] = Query(None, description="카테고리 필터"),

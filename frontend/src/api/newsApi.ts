@@ -63,4 +63,14 @@ export const newsApi = {
     const { data } = await api.post('/news/crawl', null, { params });
     return data;
   },
+
+  /**
+   * Get daily digest template (aggregated by category)
+   */
+  async getDailyDigest(category?: string): Promise<BlogTemplate> {
+    const { data } = await api.get<BlogTemplate>('/digest', {
+      params: category ? { category } : undefined,
+    });
+    return data;
+  },
 };
