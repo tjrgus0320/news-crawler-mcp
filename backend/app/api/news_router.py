@@ -24,7 +24,7 @@ template_service = TemplateService()
 async def get_daily_digest(
     category: Optional[str] = Query(None, description="특정 카테고리만 (없으면 전체)"),
 ):
-    """카테고리별 뉴스를 취합한 블로그 템플릿 생성."""
+    """카테고리별 뉴스를 분석하여 블로그 포스트 생성."""
     # Validate category if provided
     if category:
         try:
@@ -41,8 +41,13 @@ async def get_daily_digest(
     if not articles:
         raise HTTPException(status_code=404, detail="No articles found")
 
-    # Generate digest template
-    template = template_service.generate_daily_digest_template(articles)
+    # Generate template based on whether category is specified
+    if category:
+        # Single category - detailed blog post
+        template = template_service.generate_category_blog_post(articles, category)
+    else:
+        # All categories - comprehensive digest
+        template = template_service.generate_daily_digest_template(articles)
 
     return BlogTemplateResponse(article_id="digest", template=template)
 
