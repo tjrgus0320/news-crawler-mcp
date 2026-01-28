@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { ArticleListResponse, Article, Category, CrawlStatus, BlogTemplate } from '../types/news';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
