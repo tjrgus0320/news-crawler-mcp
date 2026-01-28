@@ -1,7 +1,30 @@
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useCrawlStatus } from '../hooks/useNews';
+import { newsApi } from '../api/newsApi';
 
 export function Header() {
-  const { status } = useCrawlStatus();
+  const { status, refetch } = useCrawlStatus();
+  const [isCrawling, setIsCrawling] = useState(false);
+
+  const handleCrawl = async () => {
+    if (isCrawling) return;
+
+    setIsCrawling(true);
+    try {
+      await newsApi.triggerCrawl({ max_per_category: 30 });
+      toast.success('크롤링이 시작되었습니다! 잠시 후 새로고침 해주세요.');
+
+      // 10초 후 상태 갱신
+      setTimeout(() => {
+        refetch();
+        setIsCrawling(false);
+      }, 10000);
+    } catch (error) {
+      toast.error('크롤링 시작에 실패했습니다.');
+      setIsCrawling(false);
+    }
+  };
 
   const formatLastUpdate = () => {
     if (!status?.last_crawled_at) return '정보 없음';
@@ -61,6 +84,45 @@ export function Header() {
                 </span>
               </div>
             )}
+
+            {/* 크롤링 버튼 */}
+            <button
+              onClick={handleCrawl}
+              disabled={isCrawling}
+              className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                isCrawling
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-primary-500 text-white hover:bg-primary-600'
+              }`}
+              title="뉴스 수동 업데이트"
+            >
+              {isCrawling ? (
+                <span className="flex items-center gap-1.5">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  <span className="hidden sm:inline">크롤링 중...</span>
+                </span>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  🔄
+                  <span className="hidden sm:inline">업데이트</span>
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
