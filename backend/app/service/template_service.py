@@ -4,44 +4,50 @@ from typing import Dict, Any, Optional, List
 
 
 class TemplateService:
-    """Service for generating blog post templates."""
+    """Service for generating insightful blog post templates."""
 
-    # Category metadata
+    # Category metadata with analysis prompts
     CATEGORY_META = {
         "politics": {
             "name": "정치",
             "emoji": "🏛️",
-            "intro": "오늘 정치권에서는 다음과 같은 주요 이슈들이 있었습니다.",
+            "section_title": "정치 동향 분석",
+            "perspective": "정책 변화와 그 파급효과",
         },
         "economy": {
             "name": "경제",
             "emoji": "💰",
-            "intro": "경제 분야에서 주목할 만한 소식들을 정리했습니다.",
+            "section_title": "경제 흐름 읽기",
+            "perspective": "시장과 일상에 미치는 영향",
         },
         "society": {
             "name": "사회",
             "emoji": "👥",
-            "intro": "오늘 사회면을 장식한 주요 뉴스들입니다.",
+            "section_title": "사회 이슈 톺아보기",
+            "perspective": "우리 삶에 던지는 질문",
         },
         "life": {
             "name": "생활/문화",
             "emoji": "🌸",
-            "intro": "생활과 문화 관련 흥미로운 소식들을 모았습니다.",
+            "section_title": "생활 트렌드 체크",
+            "perspective": "변화하는 라이프스타일",
         },
         "world": {
             "name": "세계",
             "emoji": "🌍",
-            "intro": "국제 뉴스에서 눈여겨볼 소식들입니다.",
+            "section_title": "글로벌 시선",
+            "perspective": "국제 정세가 우리에게 미치는 영향",
         },
         "it": {
             "name": "IT/과학",
             "emoji": "💻",
-            "intro": "기술과 과학 분야의 최신 동향을 살펴봅니다.",
+            "section_title": "테크 인사이트",
+            "perspective": "기술이 만드는 변화의 방향",
         },
     }
 
     def generate_template(self, article: Dict[str, Any]) -> str:
-        """Generate a blog post template from an article."""
+        """Generate a blog post template from a single article."""
         title = article.get("title", "제목 없음")
         category = article.get("category", "기타")
         source = article.get("source", "알 수 없음")
@@ -49,7 +55,6 @@ class TemplateService:
         summary = article.get("summary", "")
         published_at = article.get("published_at")
 
-        # Format date
         if published_at:
             if isinstance(published_at, str):
                 try:
@@ -63,53 +68,33 @@ class TemplateService:
             else datetime.now().strftime("%Y-%m-%d")
         )
 
-        # Get Korean category name
         meta = self.CATEGORY_META.get(category, {"name": category, "emoji": "📰"})
         category_kr = meta["name"]
 
-        # Generate summary points
-        summary_points = self._extract_summary_points(summary)
+        summary_text = self._format_summary(summary)
 
         template = f"""## [{category_kr}] {title}
 
-📅 작성일: {date_str}
-📰 출처: {source}
+📅 {date_str} | 📰 {source}
 
-### 핵심 요약
-{summary_points}
+{summary_text}
 
-### 원문 링크
-[기사 원문 보기]({url})
+**[원문 보기]({url})**
 
 ---
 """
         return template
 
-    def _extract_summary_points(self, summary: str) -> str:
-        """Extract key points from summary text."""
+    def _format_summary(self, summary: str) -> str:
+        """Format summary into readable paragraphs."""
         if not summary:
-            return "- 요약 정보 없음"
-
-        # Split by sentences and create bullet points
-        sentences = summary.replace(".", ".\n").split("\n")
-        points = []
-
-        for sentence in sentences:
-            sentence = sentence.strip()
-            if len(sentence) > 10:  # Filter out very short fragments
-                points.append(f"- {sentence}")
-                if len(points) >= 3:  # Max 3 points
-                    break
-
-        if not points:
-            return f"- {summary[:200]}"
-
-        return "\n".join(points)
+            return "_요약 정보가 없습니다._"
+        return summary.strip()
 
     def generate_daily_digest_template(
         self, articles: list[Dict[str, Any]], date: Optional[datetime] = None
     ) -> str:
-        """Generate a comprehensive blog post analyzing today's news."""
+        """Generate a comprehensive daily news analysis blog post."""
         if date is None:
             date = datetime.now()
 
@@ -125,86 +110,184 @@ class TemplateService:
             by_category[cat].append(article)
 
         # Build blog post
-        template = f"""# 📰 {date_str} ({weekday}요일) 오늘의 뉴스 브리핑
+        template = f"""# {date_str} ({weekday}) 뉴스 브리핑
 
-안녕하세요! 오늘 하루 동안 있었던 주요 뉴스들을 분야별로 정리해드립니다.
+오늘 하루, 눈여겨볼 뉴스들을 정리해봤습니다.
+
+단순히 "이런 일이 있었다"가 아니라, **왜 이게 중요한지**, 그리고 **앞으로 어떤 영향을 줄 수 있는지** 위주로 살펴봅니다.
 
 ---
 
 """
         # Generate each category section
-        category_order = ["politics", "economy", "society", "world", "it", "life"]
+        category_order = ["politics", "economy", "it", "society", "world", "life"]
 
         for cat in category_order:
             if cat not in by_category:
                 continue
 
             cat_articles = by_category[cat]
-            meta = self.CATEGORY_META.get(cat, {"name": cat, "emoji": "📰", "intro": ""})
+            meta = self.CATEGORY_META.get(cat, {"name": cat, "emoji": "📰", "section_title": cat})
 
-            template += f"## {meta['emoji']} {meta['name']}\n\n"
-            template += f"{meta['intro']}\n\n"
+            template += f"## {meta['emoji']} {meta['section_title']}\n\n"
 
-            # Generate analytical content for this category
-            template += self._generate_category_analysis(cat_articles)
+            # Generate insightful content for this category
+            template += self._generate_insightful_analysis(cat, cat_articles)
             template += "\n---\n\n"
 
-        # Add references section
-        template += "## 📚 참고 기사\n\n"
+        # Closing thoughts
+        template += """## 마무리하며
+
+오늘 뉴스를 보면서 느낀 건, 변화의 속도가 점점 빨라지고 있다는 점입니다.
+당장은 체감되지 않더라도, 이런 흐름들이 쌓이면 어느 순간 우리 일상에 직접적인 영향을 주게 됩니다.
+
+내일도 주요 이슈들 정리해서 올리겠습니다.
+
+"""
+        # Add references
+        template += "---\n\n"
+        template += "<details>\n<summary>📚 참고 기사 목록</summary>\n\n"
         for cat in category_order:
             if cat not in by_category:
                 continue
             meta = self.CATEGORY_META.get(cat, {"name": cat})
             template += f"**{meta['name']}**\n"
-            for article in by_category[cat][:5]:  # Max 5 per category
+            for article in by_category[cat][:5]:
                 title = article.get("title", "제목 없음")
                 url = article.get("url", "#")
                 source = article.get("source", "")
-                template += f"- [{title}]({url}) - {source}\n"
+                template += f"- [{title}]({url}) ({source})\n"
             template += "\n"
+        template += "</details>\n\n"
 
-        template += f"""---
-
-*본 글은 {date.strftime('%Y-%m-%d %H:%M')}에 자동 생성되었습니다.*
-"""
+        template += f"*{date.strftime('%Y-%m-%d %H:%M')} 작성*\n"
         return template
 
-    def _generate_category_analysis(self, articles: List[Dict[str, Any]]) -> str:
-        """Generate analytical content for a category from multiple articles."""
+    def _generate_insightful_analysis(self, category: str, articles: List[Dict[str, Any]]) -> str:
+        """Generate insightful analysis content for a category."""
         if not articles:
-            return "이 분야의 주요 뉴스가 없습니다.\n"
+            return "오늘은 특별한 이슈가 없었습니다.\n"
 
         content_parts = []
-
-        # Process top articles (up to 5)
         top_articles = articles[:5]
 
-        for i, article in enumerate(top_articles):
-            title = article.get("title", "")
-            summary = article.get("summary", "")
-            source = article.get("source", "")
-
-            if not summary:
-                summary = title
-
-            # Clean up summary
-            summary = summary.strip()
-            if summary and not summary.endswith(('.', '다', '요')):
-                summary += "."
-
-            # Format each article's content
-            if i == 0:
-                # Lead article - more prominent
-                content_parts.append(f"### 📌 {title}\n")
-                content_parts.append(f"{summary}\n")
-                if source:
-                    content_parts.append(f"({source} 보도)\n")
-            else:
-                # Supporting articles
-                content_parts.append(f"### {title}\n")
-                content_parts.append(f"{summary}\n")
+        # Opening context based on category
+        if category == "politics":
+            content_parts.append(self._analyze_politics(top_articles))
+        elif category == "economy":
+            content_parts.append(self._analyze_economy(top_articles))
+        elif category == "it":
+            content_parts.append(self._analyze_tech(top_articles))
+        else:
+            content_parts.append(self._analyze_general(category, top_articles))
 
         return "\n".join(content_parts)
+
+    def _analyze_politics(self, articles: List[Dict[str, Any]]) -> str:
+        """Generate political analysis."""
+        content = []
+
+        for i, article in enumerate(articles[:3]):
+            title = article.get("title", "")
+            summary = article.get("summary", "") or title
+
+            if i == 0:
+                content.append(f"**{title}**\n")
+                content.append(f"{summary}\n")
+                content.append("")
+                content.append("이 이슈가 중요한 이유는, 단순히 오늘의 뉴스로 끝나지 않기 때문입니다. ")
+                content.append("정책 방향이 바뀌면 그 여파는 몇 달 뒤, 혹은 몇 년 뒤에 체감되기 마련입니다.")
+                content.append("")
+            else:
+                content.append(f"한편, **{title}** 소식도 있었습니다.")
+                content.append(f"{self._shorten(summary, 150)}")
+                content.append("")
+
+        content.append("정치 뉴스는 당장 피부에 와닿지 않아도, 결국 정책으로 이어지고 우리 생활에 영향을 줍니다. ")
+        content.append("이런 흐름을 꾸준히 지켜보는 게 중요합니다.")
+        content.append("")
+
+        return "\n".join(content)
+
+    def _analyze_economy(self, articles: List[Dict[str, Any]]) -> str:
+        """Generate economic analysis."""
+        content = []
+
+        for i, article in enumerate(articles[:3]):
+            title = article.get("title", "")
+            summary = article.get("summary", "") or title
+
+            if i == 0:
+                content.append(f"**{title}**\n")
+                content.append(f"{summary}\n")
+                content.append("")
+                content.append("경제 지표나 시장 움직임은 개인에게 직접적인 영향을 줍니다. ")
+                content.append("금리, 환율, 물가 - 이런 숫자들이 결국 우리 지갑 사정을 결정하니까요.")
+                content.append("")
+            else:
+                content.append(f"또한, **{title}**")
+                content.append(f"{self._shorten(summary, 150)}")
+                content.append("")
+
+        content.append("단기적인 등락에 일희일비하기보다는, 전체적인 흐름이 어디로 향하는지 보는 게 중요합니다.")
+        content.append("")
+
+        return "\n".join(content)
+
+    def _analyze_tech(self, articles: List[Dict[str, Any]]) -> str:
+        """Generate tech/IT analysis."""
+        content = []
+
+        for i, article in enumerate(articles[:3]):
+            title = article.get("title", "")
+            summary = article.get("summary", "") or title
+
+            if i == 0:
+                content.append(f"**{title}**\n")
+                content.append(f"{summary}\n")
+                content.append("")
+                content.append("기술 뉴스를 볼 때 항상 생각하는 건, '왜 지금 이게 나왔을까?'입니다. ")
+                content.append("기업들의 움직임에는 이유가 있고, 그 방향성을 읽으면 다음 변화를 예측할 수 있습니다.")
+                content.append("")
+            else:
+                content.append(f"**{title}**도 눈여겨볼 만합니다.")
+                content.append(f"{self._shorten(summary, 150)}")
+                content.append("")
+
+        content.append("개발자나 IT 업계 종사자라면, 이런 변화가 내 업무에 어떤 영향을 줄지 한 번쯤 생각해볼 필요가 있습니다. ")
+        content.append("새로운 기술이 나왔을 때, 그게 기회가 될지 위협이 될지는 준비 여부에 달려 있으니까요.")
+        content.append("")
+
+        return "\n".join(content)
+
+    def _analyze_general(self, category: str, articles: List[Dict[str, Any]]) -> str:
+        """Generate general category analysis."""
+        meta = self.CATEGORY_META.get(category, {"perspective": ""})
+        content = []
+
+        for i, article in enumerate(articles[:3]):
+            title = article.get("title", "")
+            summary = article.get("summary", "") or title
+
+            if i == 0:
+                content.append(f"**{title}**\n")
+                content.append(f"{summary}\n")
+                content.append("")
+            else:
+                content.append(f"**{title}**")
+                content.append(f"{self._shorten(summary, 150)}")
+                content.append("")
+
+        return "\n".join(content)
+
+    def _shorten(self, text: str, max_len: int) -> str:
+        """Shorten text to max length."""
+        if not text:
+            return ""
+        text = text.strip()
+        if len(text) <= max_len:
+            return text
+        return text[:max_len] + "..."
 
     def generate_category_blog_post(
         self, articles: List[Dict[str, Any]], category: str, date: Optional[datetime] = None
@@ -214,29 +297,41 @@ class TemplateService:
             date = datetime.now()
 
         date_str = date.strftime("%Y년 %m월 %d일")
-        meta = self.CATEGORY_META.get(category, {"name": category, "emoji": "📰", "intro": ""})
+        weekday = ["월", "화", "수", "목", "금", "토", "일"][date.weekday()]
+        meta = self.CATEGORY_META.get(category, {"name": category, "emoji": "📰", "section_title": category})
 
-        template = f"""# {meta['emoji']} {date_str} {meta['name']} 뉴스 정리
+        template = f"""# {meta['emoji']} {date_str} ({weekday}) {meta['section_title']}
 
-{meta['intro']}
+오늘 {meta['name']} 분야에서 있었던 주요 이슈들을 정리합니다.
 
 ---
 
 """
-        # Main content
-        template += self._generate_category_analysis(articles)
+        # Main analysis content
+        template += self._generate_insightful_analysis(category, articles)
 
+        # Closing
+        template += """
+---
+
+## 정리하며
+
+오늘 다룬 내용들이 당장은 크게 와닿지 않을 수도 있습니다.
+하지만 이런 뉴스들이 쌓이면서 큰 흐름을 만들고, 어느 순간 우리 일상에 직접적인 영향을 주게 됩니다.
+
+꾸준히 관심 갖고 지켜보는 게 중요합니다.
+
+---
+
+"""
         # References
-        template += "\n---\n\n## 📚 원문 기사\n\n"
+        template += "<details>\n<summary>📚 참고 기사</summary>\n\n"
         for article in articles[:10]:
             title = article.get("title", "제목 없음")
             url = article.get("url", "#")
             source = article.get("source", "")
-            template += f"- [{title}]({url}) - {source}\n"
+            template += f"- [{title}]({url}) ({source})\n"
+        template += "\n</details>\n\n"
 
-        template += f"""
----
-
-*{date.strftime('%Y-%m-%d %H:%M')} 생성*
-"""
+        template += f"*{date.strftime('%Y-%m-%d %H:%M')} 작성*\n"
         return template
