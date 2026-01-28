@@ -150,3 +150,28 @@ async def trigger_crawl(
         "categories": categories or [c.value for c in CategoryEnum],
         "max_per_category": max_per_category,
     }
+
+
+@router.get("/cron/crawl")
+async def cron_crawl():
+    """Vercel Cron job endpoint - 매일 자동 크롤링.
+
+    Vercel Cron은 GET 요청으로 호출되며,
+    함수 종료 전에 크롤링이 완료되어야 함 (동기 실행).
+    """
+    try:
+        results = await news_service.crawl_all_categories(
+            max_per_category=30,
+        )
+
+        total = sum(results.values())
+        return {
+            "success": True,
+            "message": f"Cron crawl completed: {total} articles",
+            "results": results,
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Cron crawl failed: {str(e)}",
+        )
