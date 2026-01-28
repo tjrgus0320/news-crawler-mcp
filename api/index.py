@@ -9,7 +9,6 @@ sys.path.insert(0, str(root / "backend"))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from mangum import Mangum
 
 # Import router
 from backend.app.api.news_router import router as news_router
@@ -36,7 +35,3 @@ app.include_router(news_router)
 @app.get("/api")
 async def root():
     return {"message": "뉴스 크롤러 API", "docs": "/api/docs"}
-
-
-# Vercel serverless handler
-handler = Mangum(app, lifespan="off")
