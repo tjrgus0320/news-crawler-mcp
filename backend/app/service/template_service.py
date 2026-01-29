@@ -156,20 +156,115 @@ class TemplateService:
         return "\n".join(lines)
 
     def generate_template(self, article: Dict[str, Any]) -> str:
-        """단일 기사 템플릿."""
+        """단일 기사 블로그 템플릿 - 분석형 콘텐츠 생성."""
         title = article.get("title", "제목 없음")
         source = article.get("source", "")
         url = article.get("url", "#")
         summary = article.get("summary", "")
+        category = article.get("category", "general")
 
-        return f"""### 🔹 {title}
+        meta = self.CATEGORY_META.get(category, {"emoji": "📰", "name": "뉴스"})
+        date = datetime.now()
+        date_str = date.strftime("%Y년 %m월 %d일")
 
-{summary.strip() if summary else '_요약 정보 없음_'}
+        lines = []
 
-**출처**: [{source}]({url})
+        # 헤더
+        lines.append(f"# {meta['emoji']} {title}")
+        lines.append("")
+        lines.append(f"> {date_str} | {source}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
 
----
-"""
+        # 팩트 요약
+        lines.append("## 📌 핵심 내용")
+        lines.append("")
+        if summary:
+            lines.append(summary)
+        else:
+            lines.append(f"[{source}]({url})에서 보도한 내용입니다.")
+        lines.append("")
+
+        # 카테고리별 분석 코멘트
+        lines.append("## 💡 왜 주목해야 하나")
+        lines.append("")
+        lines.append(self._get_single_article_analysis(category))
+        lines.append("")
+
+        # 생각 포인트
+        lines.append("## 🤔 생각해볼 점")
+        lines.append("")
+        lines.append(self._get_thinking_points(category))
+        lines.append("")
+
+        # 애매한 문장 추가 (AI 티 제거)
+        lines.append(random.choice(self.UNCERTAIN_PHRASES))
+        lines.append("")
+
+        # 출처
+        lines.append("---")
+        lines.append("")
+        lines.append(f"**원문**: [{title}]({url}) ({source})")
+        lines.append("")
+        lines.append(f"*{date.strftime('%Y-%m-%d %H:%M')} 작성*")
+
+        return "\n".join(lines)
+
+    def _get_single_article_analysis(self, category: str) -> str:
+        """카테고리별 단일 기사 분석 코멘트."""
+        analysis = {
+            "economy": [
+                "경제 뉴스에서 중요한 건 숫자 자체가 아니라, **시장이 이걸 어떻게 받아들이느냐**다.",
+                "단기 반응에 휘둘리기보다, 이 흐름이 어디로 향하는지 방향을 읽는 게 낫다.",
+                "당장 체감하긴 어려워도, 몇 달 뒤 생활비나 금리로 돌아올 수 있는 신호다.",
+            ],
+            "politics": [
+                "정치 뉴스의 특징은, 지금은 말뿐인 것 같아도 몇 달 뒤 정책으로 슬쩍 돌아온다는 점이다.",
+                "발언 자체보다 **'결국 어디로 가려는 건지'** 방향을 읽어두는 게 중요하다.",
+                "당장 큰 변화는 없어 보여도, 이런 신호가 쌓이면 흐름이 바뀌는 시점이 온다.",
+            ],
+            "it": [
+                "기술 뉴스를 볼 때 항상 던지는 질문이 있다. **\"왜 하필 지금 이게 나왔을까?\"**",
+                "발표 타이밍에는 이유가 있다. 경쟁사 움직임, 시장 상황, 내부 로드맵.",
+                "개발자나 IT 업계 종사자라면, 이게 **내 업무에 어떤 영향 주는지** 생각해볼 타이밍이다.",
+            ],
+            "society": [
+                "개별 사건으로 보면 안 된다. 비슷한 뉴스가 반복된다는 건 **구조적으로 뭔가 막혀 있다**는 신호.",
+                "당장 내 일 아닌 것 같아도, 결국 생활비나 정책으로 연결되는 경우가 많다.",
+                "사회 이슈는 '왜 지금 이게 터졌나'를 보면 흐름이 읽힌다.",
+            ],
+            "world": [
+                "남의 나라 일 같지만, **환율, 수출, 공급망**으로 연결되면 우리 일이 된다.",
+                "글로벌 뉴스는 교양으로 보는 게 아니라 실무적으로 체크하는 게 맞다.",
+                "지정학적 변화는 느리게 오지만, 한 번 오면 오래 간다.",
+            ],
+            "life": [
+                "트렌드는 결국 소비 패턴과 연결된다. **사람들이 어디에 돈을 쓰려 하는지** 읽는 게 포인트.",
+                "문화 뉴스는 가볍게 보이지만, 시대의 분위기를 반영하는 경우가 많다.",
+                "생활 트렌드 변화는 새로운 기회가 될 수도 있다.",
+            ],
+        }
+
+        category_lines = analysis.get(category, [
+            "이 뉴스가 의미하는 바를 한 번 짚어볼 필요가 있다.",
+            "표면적인 내용 너머에 어떤 흐름이 있는지 생각해보자.",
+        ])
+
+        return random.choice(category_lines)
+
+    def _get_thinking_points(self, category: str) -> str:
+        """카테고리별 생각 포인트."""
+        points = {
+            "economy": "- 이 흐름이 계속되면 내 자산/소비에 어떤 영향이 있을까?\n- 관련 업종이나 기업은 어디일까?",
+            "politics": "- 이 발언/정책이 실현되면 누가 영향을 받을까?\n- 비슷한 사례가 과거에 있었나?",
+            "it": "- 이 기술/서비스가 내 업무에 적용될 여지가 있을까?\n- 경쟁 서비스나 대안은 뭐가 있을까?",
+            "society": "- 이 문제의 근본 원인은 뭘까?\n- 개인적으로 대비하거나 준비할 게 있을까?",
+            "world": "- 국내에는 어떤 영향이 있을까?\n- 관련 산업이나 기업은 어디일까?",
+            "life": "- 이 트렌드가 내 생활에 적용될 부분이 있을까?\n- 관련된 새로운 기회가 있을까?",
+        }
+
+        return points.get(category, "- 이 뉴스가 나에게 의미하는 바는?\n- 앞으로 어떤 변화가 있을까?")
 
     def generate_daily_digest_template(
         self, articles: list[Dict[str, Any]], date: Optional[datetime] = None
